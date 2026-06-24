@@ -20,7 +20,8 @@ import {
   X,
   ShieldCheck,
   Droplet,
-  Home
+  Home,
+  ExternalLink
 } from "lucide-react";
 
 // --- FLOATING PARTICLES SYSTEM ---
@@ -225,7 +226,7 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   // Notifications
-  const [alert, setAlert] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  const [alert, setAlert] = useState<{ message: string; type: "success" | "error" | "info"; url?: string; buttonText?: string } | null>(null);
 
   // Testimonials Carousel
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
@@ -271,11 +272,16 @@ export default function App() {
   };
 
   // Trigger brief alert banner
-  const triggerAlert = (message: string, type: "success" | "error" | "info" = "success") => {
-    setAlert({ message, type });
+  const triggerAlert = (
+    message: string, 
+    type: "success" | "error" | "info" = "success",
+    url?: string,
+    buttonText?: string
+  ) => {
+    setAlert({ message, type, url, buttonText });
     setTimeout(() => {
       setAlert(null);
-    }, 5500);
+    }, type === "success" && url ? 12000 : 5500);
   };
 
   // Submit appointment booking
@@ -321,13 +327,28 @@ export default function App() {
     const updated = [newAppointment, ...appointments];
     saveAppointments(updated);
 
+    // Generate WhatsApp confirmation message for Zoe (2954-311579)
+    const msg = `Hola Zoe! Quiero confirmar mi turno:\n💅 Tratamiento: ${selectedService.name}\n🗓️ Fecha: ${formatReadableDate(bookingDate)}\n⏰ Hora: ${bookingTime} hs\n👤 Nombre: ${clientName.trim()}\n📱 Celular: ${phone.trim()}\n🏡 Modalidad: ${modalidad}${modalidad === "Domicilio" ? ` (Barrio: ${barrioInput.trim()})` : ""}`;
+    const whatsappUrl = `https://wa.me/5492954311579?text=${encodeURIComponent(msg)}`;
+
+    try {
+      window.open(whatsappUrl, "_blank");
+    } catch (err) {
+      console.log("Popup blocked:", err);
+    }
+
     // Clear form except name/phone for easier subsequent booking if needed
     setBookingTime("");
     if (modalidad === "Domicilio") {
       setBarrioInput("");
     }
     
-    triggerAlert(`¡Reserva confirmada! Zoe agendó tu turno para ${selectedService.name} el ${formatReadableDate(bookingDate)} a las ${bookingTime} hs. Te enviamos un WhatsApp al ${phone}.`, "success");
+    triggerAlert(
+      `¡Reserva agendada en el sistema! Hacé clic abajo para enviar la confirmación por WhatsApp a Zoe (2954-311579).`, 
+      "success",
+      whatsappUrl,
+      "Enviar por WhatsApp 💬"
+    );
     
     // Auto-scroll to services or keep focus
     scrollToSection("hero");
@@ -388,26 +409,41 @@ export default function App() {
 
       {/* --- NOTIFICATION TOAST --- */}
       {alert && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-md w-full p-4 rounded-xl shadow-xl border border-[#FCE7F3] bg-white flex items-start gap-3 animate-fade-in transition-all duration-300">
-          <div className="mt-0.5 shrink-0">
-            {alert.type === "success" ? (
-              <CheckCircle className="w-5 h-5 text-[#E05A92]" />
-            ) : alert.type === "error" ? (
-              <Info className="w-5 h-5 text-rose-500" />
-            ) : (
-              <Info className="w-5 h-5 text-[#5C3A85]" />
-            )}
+        <div className="fixed bottom-6 right-6 z-50 max-w-md w-full p-4 rounded-xl shadow-xl border border-[#FCE7F3] bg-white flex flex-col gap-3 animate-fade-in transition-all duration-300">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 shrink-0">
+              {alert.type === "success" ? (
+                <CheckCircle className="w-5 h-5 text-[#E05A92]" />
+              ) : alert.type === "error" ? (
+                <Info className="w-5 h-5 text-rose-500" />
+              ) : (
+                <Info className="w-5 h-5 text-[#5C3A85]" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-[#4B2A6B]">Notificación de Kirei Nails</p>
+              <p className="text-xs text-stone-900 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-[#4B2A6B]">Notificación de Kirei Nails</p>
-            <p className="text-xs text-stone-900 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
-          </div>
+          {alert.url && (
+            <div className="pt-1 flex justify-end">
+              <a
+                href={alert.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gradient-to-r from-[#5C3A85] to-[#E05A92] text-white font-bold text-[10px] px-3.5 py-2 rounded-lg uppercase tracking-wider hover:opacity-95 active:scale-95 transition-all text-center flex items-center gap-1.5 shadow-[0_3px_10px_rgba(224,90,146,0.25)]"
+              >
+                <span>{alert.buttonText || "Confirmar por WhatsApp"}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
         </div>
       )}
 
       {/* --- FLOATING WHATSAPP CTA --- */}
       <a 
-        href="https://wa.me/542954123456?text=Hola%20Zoe!%20Quiero%20hacer%20una%20consulta%20por%20un%20turno..."
+        href="https://wa.me/5492954311579?text=Hola%20Zoe!%20Quiero%20hacer%20una%20consulta%20por%20un%20turno..."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 left-6 z-40 whatsapp-tactile-pearl p-[1.5px] rounded-full hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group overflow-hidden"

@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "Appointment": {
+      "title": "Appointment",
+      "description": "An appointment booked at Kirei Nails by Zoe",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the appointment"
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Name of the client"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the client"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Id of the requested nail service"
+        },
+        "serviceName": {
+          "type": "string",
+          "description": "Name of the requested nail service"
+        },
+        "zone": {
+          "type": "string",
+          "description": "Physical zone or address of the appointment"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the appointment (YYYY-MM-DD)"
+        },
+        "time": {
+          "type": "string",
+          "description": "Time slot of the appointment (HH:MM)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of creation (ISO-8601 string)"
+        },
+        "modalidad": {
+          "type": "string",
+          "description": "Modalidad of service (Local or Domicilio)",
+          "enum": ["Local", "Domicilio"]
+        },
+        "barrio": {
+          "type": "string",
+          "description": "Neighborhood name for Domicilio modality"
+        }
+      },
+      "required": ["id", "clientName", "phone", "serviceId", "serviceName", "zone", "date", "time", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Collection of booked appointments"
+    }
+  }
+}

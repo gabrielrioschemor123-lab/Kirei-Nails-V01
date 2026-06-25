@@ -24,6 +24,74 @@ import {
   ExternalLink
 } from "lucide-react";
 
+import { initializeApp } from "firebase/app";
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  getDocFromServer 
+} from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAuOETYvLtwwVlTYVqNLNGRUArvgGYT8Qc",
+  authDomain: "kirei-858fd.firebaseapp.com",
+  projectId: "kirei-858fd",
+  storageBucket: "kirei-858fd.firebasestorage.app",
+  messagingSenderId: "860210423087",
+  appId: "1:860210423087:web:346b1bc92625f7f586adda",
+  measurementId: "G-FP4RH49SFW"
+};
+
+const appInstance = initializeApp(firebaseConfig);
+const db = getFirestore(appInstance);
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: null,
+      isAnonymous: null,
+      tenantId: null,
+      providerInfo: []
+    },
+    operationType,
+    path
+  };
+  console.warn('Firestore Non-Fatal Alert: ', JSON.stringify(errInfo));
+  // We do not throw a hard exception here so that the app's React UI can degrade gracefully and work offline.
+}
+
 // --- FLOATING PARTICLES SYSTEM ---
 function FloatingParticles() {
   return null;
@@ -259,33 +327,50 @@ export default function App() {
   // Testimonials Carousel
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
 
-  // Load appointments from localStorage
+  // Load and sync appointments from Firebase Firestore in real-time
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("kirei_appointments");
-      if (stored) {
-        try {
-          setAppointments(JSON.parse(stored));
-        } catch (e) {
-          console.error("Error parsing stored appointments", e);
-          setAppointments(DEFAULT_APPOINTMENTS);
+    const appointmentsCollection = collection(db, "appointments");
+    
+    const unsubscribe = onSnapshot(appointmentsCollection, async (snapshot) => {
+      try {
+        const list: Appointment[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as Appointment);
+        });
+        
+        // Sort by createdAt descending
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        // If snapshot is empty and we haven't seeded yet in this browser, pre-seed
+        if (snapshot.empty && typeof window !== "undefined" && !localStorage.getItem("kirei_firebase_seeded")) {
+          localStorage.setItem("kirei_firebase_seeded", "true");
+          for (const appItem of DEFAULT_APPOINTMENTS) {
+            try {
+              await setDoc(doc(db, "appointments", appItem.id), appItem);
+            } catch (err) {
+              handleFirestoreError(err, OperationType.WRITE, `appointments/${appItem.id}`);
+            }
+          }
+          return;
         }
-      } else {
-        // Pre-seed default appointments
-        localStorage.setItem("kirei_appointments", JSON.stringify(DEFAULT_APPOINTMENTS));
-        setAppointments(DEFAULT_APPOINTMENTS);
+        
+        setAppointments(list);
+        setIsLoaded(true);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.LIST, "appointments");
+        // Fallback gracefully so the UI loads
+        setAppointments((prev) => prev.length > 0 ? prev : DEFAULT_APPOINTMENTS);
+        setIsLoaded(true);
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, "appointments");
+      // Fallback gracefully so the UI loads
+      setAppointments((prev) => prev.length > 0 ? prev : DEFAULT_APPOINTMENTS);
       setIsLoaded(true);
-    }
-  }, []);
+    });
 
-  // Save appointments to localStorage
-  const saveAppointments = (newAppointments: Appointment[]) => {
-    setAppointments(newAppointments);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("kirei_appointments", JSON.stringify(newAppointments));
-    }
-  };
+    return () => unsubscribe();
+  }, []);
 
   // Helper to format dates nicely
   const formatReadableDate = (dateStr: string) => {
@@ -313,7 +398,7 @@ export default function App() {
   };
 
   // Submit appointment booking
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!clientName.trim() || !phone.trim() || !bookingDate || !bookingTime) {
@@ -323,7 +408,7 @@ export default function App() {
 
     // Verify slot collision
     const isSlotTaken = appointments.some(
-      (app) => app.date === bookingDate && app.time === bookingTime
+      (appItem) => appItem.date === bookingDate && appItem.time === bookingTime
     );
 
     if (isSlotTaken) {
@@ -352,8 +437,11 @@ export default function App() {
       barrio: modalidad === "Local" ? "Callaqueo 1019" : barrioInput.trim()
     };
 
-    const updated = [newAppointment, ...appointments];
-    saveAppointments(updated);
+    try {
+      await setDoc(doc(db, "appointments", newAppointment.id), newAppointment);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `appointments/${newAppointment.id}`);
+    }
 
     // Generate WhatsApp confirmation message for Zoe (2954-311579)
     const matchedBarrioObj = BARRIOS.find(
@@ -390,10 +478,13 @@ export default function App() {
   };
 
   // Admin delete appointment
-  const handleDeleteAppointment = (id: string) => {
-    const filtered = appointments.filter((app) => app.id !== id);
-    saveAppointments(filtered);
-    triggerAlert("El turno ha sido completado y removido de la agenda activa.", "info");
+  const handleDeleteAppointment = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "appointments", id));
+      triggerAlert("El turno ha sido completado y removido de la agenda activa.", "info");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `appointments/${id}`);
+    }
   };
 
   // Admin authenticate
@@ -413,9 +504,20 @@ export default function App() {
     triggerAlert("Sesión de administración cerrada correctamente.", "info");
   };
 
-  const handleResetDemoData = () => {
-    saveAppointments(DEFAULT_APPOINTMENTS);
-    triggerAlert("Se han restaurado los turnos de prueba por defecto.", "info");
+  const handleResetDemoData = async () => {
+    try {
+      // Delete existing appointments
+      for (const appItem of appointments) {
+        await deleteDoc(doc(db, "appointments", appItem.id));
+      }
+      // Re-seed default appointments
+      for (const appItem of DEFAULT_APPOINTMENTS) {
+        await setDoc(doc(db, "appointments", appItem.id), appItem);
+      }
+      triggerAlert("Se han restaurado los turnos de prueba por defecto.", "info");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, "appointments");
+    }
   };
 
   const handleQuickSelectService = (serviceId: string) => {

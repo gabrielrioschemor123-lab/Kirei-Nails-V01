@@ -110,20 +110,48 @@ const SERVICES: Service[] = [
 ];
 
 const BARRIOS = [
-  "Centro",
-  "Villa Alonso",
-  "Butaló",
-  "Fitte",
-  "Toay",
-  "Santa María",
-  "Plan 5000",
-  "Villa Santillán",
-  "Escalante",
-  "Zona Norte",
-  "Los Hornos",
-  "Las Camelias",
-  "Villa Tomás Mason",
-  "Aeropuerto"
+  { nombre: "25 de Mayo", km: 6, precio: 4500 },
+  { nombre: "Aeropuerto", km: 3, precio: 2250 },
+  { nombre: "ARA San Juan", km: 9, precio: 6750 },
+  { nombre: "Butaló", km: 7.5, precio: 5625 },
+  { nombre: "Centro", km: 5, precio: 3750 },
+  { nombre: "Colonia Escalante", km: 6.5, precio: 4875 },
+  { nombre: "Empleados de Comercio", km: 8, precio: 6000 },
+  { nombre: "Escalante", km: 6, precio: 4500 },
+  { nombre: "Escondido", km: 9, precio: 6750 },
+  { nombre: "Esperanza", km: 8.5, precio: 6375 },
+  { nombre: "Fénix", km: 6.5, precio: 4875 },
+  { nombre: "Fitte", km: 5.5, precio: 4125 },
+  { nombre: "Inti Huasi", km: 7, precio: 5250 },
+  { nombre: "Jardín", km: 7.5, precio: 5625 },
+  { nombre: "Las Artes", km: 6.5, precio: 4875 },
+  { nombre: "Las Camelias", km: 4, precio: 3000 },
+  { nombre: "Los Fresnos", km: 8, precio: 6000 },
+  { nombre: "Los Hornos", km: 10, precio: 7500 },
+  { nombre: "Lowo Che (Toay)", km: 14, precio: 10500 },
+  { nombre: "Malvinas Argentinas", km: 4.5, precio: 3375 },
+  { nombre: "Matadero", km: 8.5, precio: 6375 },
+  { nombre: "Nelson Mandela", km: 9.5, precio: 7125 },
+  { nombre: "Néstor Kirchner", km: 9.5, precio: 7125 },
+  { nombre: "Nueva Vista", km: 7, precio: 5250 },
+  { nombre: "Obreros de la Construcción", km: 1, precio: 750 },
+  { nombre: "Plan 5000", km: 9, precio: 6750 },
+  { nombre: "Plumerillo", km: 5, precio: 3750 },
+  { nombre: "Portal del Sur", km: 10, precio: 7500 },
+  { nombre: "Procrear", km: 6.5, precio: 4875 },
+  { nombre: "Pueblos Originarios", km: 9.5, precio: 7125 },
+  { nombre: "Río Atuel", km: 8, precio: 6000 },
+  { nombre: "Sagrado Corazón de Jesús", km: 6, precio: 4500 },
+  { nombre: "San Cayetano", km: 4.5, precio: 3375 },
+  { nombre: "Santa María de La Pampa", km: 3, precio: 2250 },
+  { nombre: "Toay (Centro)", km: 13, precio: 9750 },
+  { nombre: "Villa Alonso", km: 5.5, precio: 4125 },
+  { nombre: "Villa Germinal", km: 2, precio: 1500 },
+  { nombre: "Villa Hilda", km: 6.5, precio: 4875 },
+  { nombre: "Villa Parque", km: 6.5, precio: 4875 },
+  { nombre: "Villa Santillán", km: 6, precio: 4500 },
+  { nombre: "Villa Tomás Mason", km: 3.5, precio: 2625 },
+  { nombre: "Zona Norte", km: 2, precio: 1500 }
 ];
 
 const TIME_SLOTS = [
@@ -328,7 +356,14 @@ export default function App() {
     saveAppointments(updated);
 
     // Generate WhatsApp confirmation message for Zoe (2954-311579)
-    const msg = `Hola Zoe! Quiero confirmar mi turno:\n💅 Tratamiento: ${selectedService.name}\n🗓️ Fecha: ${formatReadableDate(bookingDate)}\n⏰ Hora: ${bookingTime} hs\n👤 Nombre: ${clientName.trim()}\n📱 Celular: ${phone.trim()}\n🏡 Modalidad: ${modalidad}${modalidad === "Domicilio" ? ` (Barrio: ${barrioInput.trim()})` : ""}`;
+    const matchedBarrioObj = BARRIOS.find(
+      (b) => b.nombre.toLowerCase() === barrioInput.trim().toLowerCase()
+    );
+    const viaticosMsgInfo = matchedBarrioObj 
+      ? ` (Barrio: ${matchedBarrioObj.nombre} - Viático: $${matchedBarrioObj.precio.toLocaleString("es-AR")})` 
+      : (modalidad === "Domicilio" ? ` (Barrio: ${barrioInput.trim()})` : "");
+
+    const msg = `Hola Zoe! Quiero confirmar mi turno:\n💅 Tratamiento: ${selectedService.name}\n🗓️ Fecha: ${formatReadableDate(bookingDate)}\n⏰ Hora: ${bookingTime} hs\n👤 Nombre: ${clientName.trim()}\n📱 Celular: ${phone.trim()}\n🏡 Modalidad: ${modalidad}${viaticosMsgInfo}`;
     const whatsappUrl = `https://wa.me/5492954311579?text=${encodeURIComponent(msg)}`;
 
     try {
@@ -397,6 +432,11 @@ export default function App() {
     }
     setMobileMenuOpen(false);
   };
+
+  // Find currently matched neighborhood for travel fee calculation
+  const selectedBarrioObj = BARRIOS.find(
+    (b) => b.nombre.toLowerCase() === barrioInput.trim().toLowerCase()
+  );
 
   return (
     <div className="min-h-screen marble-shimmer-bg text-stone-800 flex flex-col font-sans selection:bg-[#F3E8FF] selection:text-[#4B2A6B] overflow-x-hidden">
@@ -930,31 +970,10 @@ export default function App() {
               </div>
               
               <div>
-                <span className="text-[9px] uppercase tracking-[0.25em] font-extrabold text-[#E05A92] block">Nueva Solicitud</span>
                 <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#4B2A6B] mt-1.5 leading-tight">Reserva Tu Cita</h3>
                 <div className="w-8 h-0.5 bg-[#E05A92]/40 my-3 rounded-full" />
+                <span className="text-xs text-[#5C3A85] font-semibold block">Santa Rosa • Estudio Privado</span>
               </div>
-              
-              <div className="space-y-3 pt-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#E05A92]" />
-                  <span className="text-xs text-[#5C3A85] font-semibold">Santa Rosa • Estudio Privado</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#E05A92]" />
-                  <span className="text-xs text-[#5C3A85] font-semibold">Atención 1 a 1 Exclusiva</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#E05A92]" />
-                  <span className="text-xs text-[#5C3A85] font-semibold">Confirmación Directa</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="relative z-10 pt-8 lg:pt-0">
-              <p className="text-[10px] text-stone-850 font-semibold leading-relaxed">
-                Cada detalle está cuidado bajo un estándar absoluto de pulcritud y salud para tus manos.
-              </p>
             </div>
           </div>
 
@@ -1095,19 +1114,19 @@ export default function App() {
                       {/* Autocomplete Suggestions Dropdown */}
                       {showSuggestions && (
                         <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-[#FCE7F3] rounded-xl shadow-lg z-50 divide-y divide-stone-100 animate-fade-in">
-                          {BARRIOS.filter(b => b.toLowerCase().includes(barrioInput.toLowerCase())).length > 0 ? (
-                            BARRIOS.filter(b => b.toLowerCase().includes(barrioInput.toLowerCase())).map((barrio) => (
+                          {BARRIOS.filter(b => b.nombre.toLowerCase().includes(barrioInput.toLowerCase())).length > 0 ? (
+                            BARRIOS.filter(b => b.nombre.toLowerCase().includes(barrioInput.toLowerCase())).map((barrio) => (
                               <div
-                                key={barrio}
+                                key={barrio.nombre}
                                 onMouseDown={(e) => {
                                   e.preventDefault();
-                                  setBarrioInput(barrio);
+                                  setBarrioInput(barrio.nombre);
                                   setShowSuggestions(false);
                                 }}
                                 className="px-3 py-2 text-xs text-stone-900 hover:bg-[#FDF2F7] hover:text-[#5C3A85] transition-all cursor-pointer font-bold flex items-center justify-between"
                               >
-                                <span>{barrio}</span>
-                                {barrioInput.toLowerCase() === barrio.toLowerCase() && (
+                                <span>{barrio.nombre}</span>
+                                {barrioInput.toLowerCase() === barrio.nombre.toLowerCase() && (
                                   <Check className="w-3.5 h-3.5 text-[#E05A92]" />
                                 )}
                               </div>
@@ -1120,6 +1139,22 @@ export default function App() {
                         </div>
                       )}
                     </div>
+
+                    {/* Surcharge alert banner */}
+                    {selectedBarrioObj && (
+                      <div className="mt-2.5 p-3 rounded-xl border border-[#FCE7F3] bg-[#FFF5F9] text-[#E05A92] flex items-center gap-2.5 shadow-sm animate-fade-in">
+                        <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-[#E05A92] shrink-0 border border-[#FCE7F3] shadow-xs">
+                          <MapPin className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="text-[11px] font-semibold text-stone-900 leading-normal">
+                          Se aplicará un recargo de viáticos de{" "}
+                          <span className="font-extrabold text-[#E05A92]">
+                            ${selectedBarrioObj.precio.toLocaleString("es-AR")}
+                          </span>{" "}
+                          por traslado ({selectedBarrioObj.km.toLocaleString("es-AR")} km).
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

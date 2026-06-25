@@ -129,14 +129,14 @@ interface Appointment {
 const SERVICES: Service[] = [
   {
     id: "esculpidas",
-    name: "Sistema Soft Gel",
+    name: "Soft Gel",
     description: "Largo perfecto al instante. Extensiones súper naturales, livianas y cómodas desde el primer día.",
     price: "$22.000",
     duration: "120 min",
     category: "Estructuras",
     badge: "TENDENCIA",
     detail: "Cuidado absoluto de la uña natural con nivelación exacta.",
-    image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=800",
+    image: "https://i.pinimg.com/736x/90/28/08/902808a84dedb80cf7272fbbd6078fb8.jpg",
     bullets: [
       "Uñas ligeras y a medida",
       "Aplicación rápida y prolija",
@@ -152,7 +152,7 @@ const SERVICES: Service[] = [
     category: "Protección",
     badge: "Recomendado",
     detail: "Incluye manicuría combinada y nutrición de cutículas.",
-    image: "https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800",
+    image: "https://i.redd.it/ql7py1n2uoed1.jpeg",
     bullets: [
       "Máxima resistencia diaria",
       "Permite que tu uña crezca sana",
@@ -168,7 +168,7 @@ const SERVICES: Service[] = [
     category: "Esmaltado",
     badge: "Esencial",
     detail: "Gama completa de tonos clásicos y de vanguardia.",
-    image: "https://images.unsplash.com/photo-1595868840242-70b923985114?auto=format&fit=crop&q=80&w=800",
+    image: "https://i.pinimg.com/736x/c1/27/62/c12762f8b25fc8b5aac9c45d91a7b2c4.jpg",
     bullets: [
       "Esmaltado que no se salta",
       "Brillo espejo de larga duración",
@@ -231,47 +231,7 @@ const TIME_SLOTS = [
   "17:30"
 ];
 
-const DEFAULT_APPOINTMENTS: Appointment[] = [
-  {
-    id: "demo-1",
-    clientName: "Valentina Rossini",
-    phone: "2954123456",
-    serviceId: "esculpidas",
-    serviceName: "Uñas Esculpidas",
-    zone: "Callaqueo 1019",
-    date: getNextDateString(1),
-    time: "09:00",
-    createdAt: new Date().toISOString(),
-    modalidad: "Local",
-    barrio: "Callaqueo 1019"
-  },
-  {
-    id: "demo-2",
-    clientName: "Camila Varela",
-    phone: "2954987654",
-    serviceId: "semipermanente",
-    serviceName: "Esmaltado Semipermanente",
-    zone: "Villa Alonso",
-    date: getNextDateString(1),
-    time: "14:30",
-    createdAt: new Date().toISOString(),
-    modalidad: "Domicilio",
-    barrio: "Villa Alonso"
-  },
-  {
-    id: "demo-3",
-    clientName: "María Emilia Gatica",
-    phone: "2954112233",
-    serviceId: "kapping",
-    serviceName: "Kapping Gel & Acrílico",
-    zone: "Butaló",
-    date: getNextDateString(2),
-    time: "10:30",
-    createdAt: new Date().toISOString(),
-    modalidad: "Domicilio",
-    barrio: "Butaló"
-  }
-];
+const DEFAULT_APPOINTMENTS: Appointment[] = [];
 
 function getNextDateString(offsetDays: number): string {
   const date = new Date();
@@ -329,6 +289,18 @@ export default function App() {
 
   // Load and sync appointments from Firebase Firestore in real-time
   useEffect(() => {
+    // Clean up existing demo/test appointments if any exist
+    const cleanDemos = async () => {
+      try {
+        await deleteDoc(doc(db, "appointments", "demo-1"));
+        await deleteDoc(doc(db, "appointments", "demo-2"));
+        await deleteDoc(doc(db, "appointments", "demo-3"));
+      } catch (err) {
+        // non-blocking
+      }
+    };
+    cleanDemos();
+
     const appointmentsCollection = collection(db, "appointments");
     
     const unsubscribe = onSnapshot(appointmentsCollection, async (snapshot) => {
@@ -341,31 +313,18 @@ export default function App() {
         // Sort by createdAt descending
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         
-        // If snapshot is empty and we haven't seeded yet in this browser, pre-seed
-        if (snapshot.empty && typeof window !== "undefined" && !localStorage.getItem("kirei_firebase_seeded")) {
-          localStorage.setItem("kirei_firebase_seeded", "true");
-          for (const appItem of DEFAULT_APPOINTMENTS) {
-            try {
-              await setDoc(doc(db, "appointments", appItem.id), appItem);
-            } catch (err) {
-              handleFirestoreError(err, OperationType.WRITE, `appointments/${appItem.id}`);
-            }
-          }
-          return;
-        }
-        
         setAppointments(list);
         setIsLoaded(true);
       } catch (err) {
         handleFirestoreError(err, OperationType.LIST, "appointments");
         // Fallback gracefully so the UI loads
-        setAppointments((prev) => prev.length > 0 ? prev : DEFAULT_APPOINTMENTS);
+        setAppointments((prev) => prev);
         setIsLoaded(true);
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, "appointments");
       // Fallback gracefully so the UI loads
-      setAppointments((prev) => prev.length > 0 ? prev : DEFAULT_APPOINTMENTS);
+      setAppointments((prev) => prev);
       setIsLoaded(true);
     });
 
@@ -504,19 +463,15 @@ export default function App() {
     triggerAlert("Sesión de administración cerrada correctamente.", "info");
   };
 
-  const handleResetDemoData = async () => {
+  const handleClearAllAppointments = async () => {
     try {
       // Delete existing appointments
       for (const appItem of appointments) {
         await deleteDoc(doc(db, "appointments", appItem.id));
       }
-      // Re-seed default appointments
-      for (const appItem of DEFAULT_APPOINTMENTS) {
-        await setDoc(doc(db, "appointments", appItem.id), appItem);
-      }
-      triggerAlert("Se han restaurado los turnos de prueba por defecto.", "info");
+      triggerAlert("Se ha vaciado la agenda de turnos correctamente.", "info");
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, "appointments");
+      handleFirestoreError(err, OperationType.DELETE, "appointments");
     }
   };
 
@@ -830,7 +785,7 @@ export default function App() {
                 key={service.id}
                 className="bg-white border border-[#F3E8FF] rounded-3xl flex flex-col justify-between shadow-[0_12px_40px_-8px_rgba(92,58,133,0.08)] hover:shadow-[0_24px_55px_-10px_rgba(92,58,133,0.16)] hover:-translate-y-1.5 transition-all duration-500 overflow-hidden"
               >
-                {/* Header image on top of card - significantly enlarged to dominate top portion */}
+                {/* Header image on top of card */}
                 <div className="w-full h-64 sm:h-72 relative overflow-hidden">
                   <img 
                     src={service.image} 
@@ -848,64 +803,41 @@ export default function App() {
                 <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between">
                   <div className="space-y-4">
                     
-                    {/* Category & Custom Icon in compact closer row */}
-                    <div className="flex items-center justify-between flex-wrap gap-2 pb-1 border-b border-stone-50">
+                    {/* Category */}
+                    <div className="text-center pb-1 border-b border-stone-50">
                       <span className={`text-[10px] font-mono tracking-widest uppercase block ${
                         service.id === "esculpidas" ? "text-[#8B5CF6]" : "text-[#E05A92]"
                       }`}>
                         {service.category}
                       </span>
-                      
-                      {/* Refined Custom Icons per requirement */}
-                      {service.id === "esculpidas" && (
-                        <div className="flex items-center gap-1.5 py-1 px-2.5 bg-[#FAF1FA] rounded-full border border-[#E05A92]/20 shadow-[inset_0_1px_2px_rgba(224,90,146,0.05)]">
-                          <div className="relative w-6 h-4.5 flex items-center justify-center shrink-0">
-                            <div className="absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-white via-[#FAF1FA] to-[#df9baf] border border-[#E05A92]/30" />
-                            <div className="absolute bottom-0.5 right-0.5 w-2 rounded-full bg-gradient-to-br from-white via-[#FAF6F9] to-[#c43a75] border border-[#E05A92]/30" />
-                            <div className="absolute bottom-0 left-1 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-white via-stone-50 to-[#9c1f51] border border-[#E05A92]/30 animate-pulse" />
-                          </div>
-                          <span className="text-[8px] uppercase tracking-wider font-extrabold text-[#E05A92]">Perlas de autor</span>
-                        </div>
-                      )}
-
-                      {service.id === "kapping" && (
-                        <div className="flex items-center gap-1 py-1 px-2.5 bg-[#F5EBFA] rounded-full border border-[#5C3A85]/20 shadow-[inset_0_1px_2px_rgba(92,58,133,0.05)]">
-                          <ShieldCheck className="w-3.5 h-3.5 text-[#5C3A85]" />
-                          <span className="text-[8px] uppercase tracking-wider font-extrabold text-[#5C3A85]">Kapping Bond</span>
-                        </div>
-                      )}
-
-                      {service.id === "semipermanente" && (
-                        <div className="flex items-center gap-1 py-1 px-2.5 bg-[#FFF5F9] rounded-full border border-[#E05A92]/20 shadow-[inset_0_1px_2px_rgba(224,90,146,0.05)]">
-                          <Droplet className="w-3 h-3 text-[#E05A92] fill-[#E05A92]/10" />
-                          <span className="text-[8px] uppercase tracking-wider font-extrabold text-[#E05A92]">Gel UV</span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Title */}
-                    <h3 className="font-serif text-xl font-medium text-[#4B2A6B] text-center py-2">
+                    <h3 className="font-serif text-xl font-medium text-[#4B2A6B] text-center">
                       {service.name}
                     </h3>
+
+                    {/* Description */}
+                    <p className="text-xs text-stone-500 text-center leading-relaxed max-w-xs mx-auto">
+                      {service.description}
+                    </p>
+
+                    {/* Highlighted centered price below the description */}
+                    <div className="pt-4 text-center border-t border-stone-100/60">
+                      <span className="block text-[9px] text-stone-400 uppercase tracking-widest font-semibold mb-1">
+                        Precio
+                      </span>
+                      <span className="font-serif text-2xl sm:text-3xl font-semibold text-[#4B2A6B] tracking-tight">
+                        {service.price}
+                      </span>
+                    </div>
 
                   </div>
 
                   <div>
-                    {/* Footer specs / price / CTA */}
-                    <div className="mt-8 pt-6 border-t border-stone-100 flex items-center justify-between">
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-stone-700 uppercase tracking-widest font-bold block">Precio</span>
-                        <span className="font-serif text-lg font-semibold text-[#4B2A6B]">{service.price}</span>
-                      </div>
-                      <div className="space-y-1 text-right">
-                        <span className="text-[10px] text-stone-700 uppercase tracking-widest font-bold block">Duración</span>
-                        <span className="text-xs text-stone-800 font-medium font-mono">{service.duration}</span>
-                      </div>
-                    </div>
-
                     <button
                       onClick={() => handleQuickSelectService(service.id)}
-                      className="mt-6 w-full py-3.5 bg-gradient-to-r from-[#5C3A85] to-[#E05A92] hover:from-[#4B2A6B] hover:to-[#C0497E] active:scale-[0.98] text-white rounded-xl text-[10px] uppercase tracking-widest font-extrabold shadow-[0_6px_15px_rgba(224,90,146,0.22)] hover:shadow-[0_10px_24px_rgba(224,90,146,0.38)] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1 border border-white/10"
+                      className="mt-8 w-full py-3.5 bg-gradient-to-r from-[#5C3A85] to-[#E05A92] hover:from-[#4B2A6B] hover:to-[#C0497E] active:scale-[0.98] text-white rounded-xl text-[10px] uppercase tracking-widest font-extrabold shadow-[0_6px_15px_rgba(224,90,146,0.22)] hover:shadow-[0_10px_24px_rgba(224,90,146,0.38)] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1 border border-white/10"
                     >
                       <span>Agendar Turno</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -1028,12 +960,7 @@ export default function App() {
 
           </div>
 
-          {/* Elegant CTA underneath gallery */}
-          <div className="mt-12 text-center">
-            <p className="text-[#5C3A85] text-sm font-semibold italic">
-              "El diseño es infinito. Traé tu idea de Pinterest y la convertimos en realidad en tus uñas."
-            </p>
-          </div>
+
 
         </div>
       </section>
@@ -1329,10 +1256,7 @@ export default function App() {
               </div>
 
               {/* Bottom full width submit footer */}
-              <div className="md:col-span-2 pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p className="text-[9px] text-stone-800 font-medium leading-snug max-w-xs text-center sm:text-left">
-                  * Los turnos se otorgan con intervalos holgados para desinfectar toda la estación de trabajo entre clientas.
-                </p>
+              <div className="md:col-span-2 pt-4 border-t border-stone-100 flex justify-center sm:justify-end">
                 <button
                   type="submit"
                   className="w-full sm:w-auto bg-gradient-to-r from-[#5C3A85] to-[#E05A92] hover:from-[#4B2A6B] hover:to-[#C0497E] text-white px-7 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(224,90,146,0.2)] hover:shadow-[0_6px_16px_rgba(224,90,146,0.35)] active:scale-98"
@@ -1442,13 +1366,15 @@ export default function App() {
                         Mantenimiento
                       </span>
                       <div className="flex gap-2 mt-2">
-                        <button
-                          type="button"
-                          onClick={handleResetDemoData}
-                          className="bg-[#311C38] hover:bg-[#43234F] text-white text-[10px] font-bold uppercase tracking-wider py-2 px-4 rounded-xl transition-all cursor-pointer border border-[#4F255C]"
-                        >
-                          Restaurar Demos
-                        </button>
+                        {appointments.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearAllAppointments}
+                            className="bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-[10px] font-bold uppercase tracking-wider py-2 px-4 rounded-xl transition-all cursor-pointer border border-rose-900/50"
+                          >
+                            Vaciar Agenda
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={handleAdminLogout}
@@ -1473,14 +1399,8 @@ export default function App() {
 
                     <div className="overflow-x-auto">
                       {appointments.length === 0 ? (
-                        <div className="p-8 text-center text-stone-500 space-y-3">
+                        <div className="p-12 text-center text-stone-500">
                           <p className="text-xs">No hay turnos registrados en este momento.</p>
-                          <button
-                            onClick={handleResetDemoData}
-                            className="bg-[#311C38] text-stone-300 px-4 py-2 rounded-xl text-xs uppercase tracking-wider cursor-pointer"
-                          >
-                            Cargar Turnos de Prueba
-                          </button>
                         </div>
                       ) : (
                         <table className="w-full text-left text-xs border-collapse">

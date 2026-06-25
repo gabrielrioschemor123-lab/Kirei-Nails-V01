@@ -1,6 +1,6 @@
 {
-  "name": "Kirei Nails by Zaira",
-  "description": "Plataforma web premium para el estudio de manicuría de Zaira en Santa Rosa, La Pampa. Incluye catálogo de servicios exclusivos (uñas, kapping, soft gel y semipermanente) y sistema inteligente de gestión de turnos online.",
+  "name": "Kirei Nails by Zoe",
+  "description": "Estudio de manicuría boutique en Santa Rosa. Reservá tu turno online en nuestro sistema exclusivo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

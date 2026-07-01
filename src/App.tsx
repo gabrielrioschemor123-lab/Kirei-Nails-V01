@@ -147,7 +147,7 @@ const SERVICES: Service[] = [
     id: "kapping",
     name: "Kapping Protector",
     description: "Fuerza extrema para tu uña natural. Olvidate de que se te quiebren o escamen.",
-    price: "$18.000",
+    price: "$17.000",
     duration: "90 min",
     category: "Protección",
     badge: "Recomendado",
@@ -163,7 +163,7 @@ const SERVICES: Service[] = [
     id: "semipermanente",
     name: "Esmaltado Semipermanente",
     description: "Color y brillo impecables por semanas. Tus manos siempre listas y prolijas.",
-    price: "$16.000",
+    price: "$15.000",
     duration: "60 min",
     category: "Esmaltado",
     badge: "Esencial",
@@ -793,11 +793,6 @@ export default function App() {
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
                   />
-                  {service.badge && (
-                    <span className="absolute top-4 right-4 text-[9px] uppercase tracking-wider font-bold bg-[#FAF6F9]/95 text-[#5C3A85] px-2.5 py-1.5 rounded-full border border-[#FCE7F3] shadow-sm">
-                      {service.badge}
-                    </span>
-                  )}
                 </div>
 
                 <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between">
@@ -896,10 +891,6 @@ export default function App() {
                     className="w-full h-full object-cover rounded-lg group-hover:scale-103 transition-transform duration-700"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute bottom-4 left-4 right-4 bg-white border border-[#E05A92]/30 p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-350 shadow-md">
-                    <span className="text-[9px] uppercase tracking-wider font-bold text-[#E05A92] block">Estructura Premium</span>
-                    <span className="text-xs font-serif font-semibold text-[#4B2A6B]">Esculpidas Acrílicas en Oro</span>
-                  </div>
                 </div>
               </div>
 
@@ -915,10 +906,6 @@ export default function App() {
                       className="w-full h-full object-cover rounded-lg group-hover:scale-103 transition-transform duration-700"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute bottom-3 left-3 right-3 bg-white border border-[#E05A92]/30 p-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-350 shadow-md">
-                      <span className="text-[8px] uppercase tracking-wider font-bold text-[#E05A92] block">Chrome Minimalist</span>
-                      <span className="text-[11px] font-serif font-semibold text-[#4B2A6B]">Efecto Espejo & Puntas Crystal</span>
-                    </div>
                   </div>
                 </div>
 
@@ -931,10 +918,6 @@ export default function App() {
                       className="w-full h-full object-cover rounded-lg group-hover:scale-103 transition-transform duration-700"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute bottom-3 left-3 right-3 bg-white border border-[#E05A92]/30 p-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-350 shadow-md">
-                      <span className="text-[8px] uppercase tracking-wider font-bold text-[#E05A92] block">Kapping Gel</span>
-                      <span className="text-[11px] font-serif font-semibold text-[#4B2A6B]">Nivelación Perfecta Coquette</span>
-                    </div>
                   </div>
                 </div>
 
@@ -949,10 +932,6 @@ export default function App() {
                     className="w-full h-full object-cover rounded-lg group-hover:scale-103 transition-transform duration-700"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute bottom-4 left-4 right-4 bg-white border border-[#E05A92]/30 p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-350 shadow-md">
-                    <span className="text-[9px] uppercase tracking-wider font-bold text-[#E05A92] block">Nude Celestial</span>
-                    <span className="text-xs font-serif font-semibold text-[#4B2A6B]">Esmaltado con Estrellas en Oro</span>
-                  </div>
                 </div>
               </div>
 

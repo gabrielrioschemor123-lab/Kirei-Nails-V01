@@ -21,7 +21,11 @@ import {
   ShieldCheck,
   Droplet,
   Home,
-  ExternalLink
+  ExternalLink,
+  Instagram,
+  MessageCircle,
+  Heart,
+  Share2
 } from "lucide-react";
 
 import { initializeApp } from "firebase/app";
@@ -123,6 +127,7 @@ interface Appointment {
   createdAt: string;
   modalidad?: "Local" | "Domicilio";
   barrio?: string;
+  direccion?: string;
 }
 
 // --- CONSTANTS ---
@@ -272,6 +277,7 @@ export default function App() {
   const [selectedServiceId, setSelectedServiceId] = useState(SERVICES[0].id);
   const [modalidad, setModalidad] = useState<"Local" | "Domicilio">("Local");
   const [barrioInput, setBarrioInput] = useState("");
+  const [direccionDomicilio, setDireccionDomicilio] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [bookingDate, setBookingDate] = useState(getNextDateString(1));
   const [bookingTime, setBookingTime] = useState("");
@@ -382,18 +388,24 @@ export default function App() {
       return;
     }
 
+    if (modalidad === "Domicilio" && !direccionDomicilio.trim()) {
+      triggerAlert("Por favor, completá tu dirección exacta (calle, número) para el domicilio.", "error");
+      return;
+    }
+
     const newAppointment: Appointment = {
       id: "app-" + Date.now(),
       clientName: clientName.trim(),
       phone: phone.trim(),
       serviceId: selectedServiceId,
       serviceName: selectedService.name,
-      zone: modalidad === "Local" ? "Callaqueo 1019" : barrioInput.trim(),
+      zone: modalidad === "Local" ? "Callaqueo 1019" : `${barrioInput.trim()} - ${direccionDomicilio.trim()}`,
       date: bookingDate,
       time: bookingTime,
       createdAt: new Date().toISOString(),
       modalidad: modalidad,
-      barrio: modalidad === "Local" ? "Callaqueo 1019" : barrioInput.trim()
+      barrio: modalidad === "Local" ? "Callaqueo 1019" : barrioInput.trim(),
+      direccion: modalidad === "Local" ? "" : direccionDomicilio.trim()
     };
 
     try {
@@ -410,7 +422,9 @@ export default function App() {
       ? ` (Barrio: ${matchedBarrioObj.nombre} - Viático: $${matchedBarrioObj.precio.toLocaleString("es-AR")})` 
       : (modalidad === "Domicilio" ? ` (Barrio: ${barrioInput.trim()})` : "");
 
-    const msg = `Hola Zoe! Quiero confirmar mi turno:\n💅 Tratamiento: ${selectedService.name}\n🗓️ Fecha: ${formatReadableDate(bookingDate)}\n⏰ Hora: ${bookingTime} hs\n👤 Nombre: ${clientName.trim()}\n📱 Celular: ${phone.trim()}\n🏡 Modalidad: ${modalidad}${viaticosMsgInfo}`;
+    const addressMsgInfo = modalidad === "Domicilio" ? `\n🏡 Dirección exacta: ${direccionDomicilio.trim()}` : "";
+
+    const msg = `Hola Zoe! Quiero confirmar mi turno:\n💅 Tratamiento: ${selectedService.name}\n🗓️ Fecha: ${formatReadableDate(bookingDate)}\n⏰ Hora: ${bookingTime} hs\n👤 Nombre: ${clientName.trim()}\n📱 Celular: ${phone.trim()}\n🏡 Modalidad: ${modalidad}${viaticosMsgInfo}${addressMsgInfo}`;
     const whatsappUrl = `https://wa.me/5492954311579?text=${encodeURIComponent(msg)}`;
 
     try {
@@ -423,6 +437,7 @@ export default function App() {
     setBookingTime("");
     if (modalidad === "Domicilio") {
       setBarrioInput("");
+      setDireccionDomicilio("");
     }
     
     triggerAlert(
@@ -494,6 +509,9 @@ export default function App() {
   const selectedBarrioObj = BARRIOS.find(
     (b) => b.nombre.toLowerCase() === barrioInput.trim().toLowerCase()
   );
+
+  // Find currently selected service for total estimation
+  const selectedService = SERVICES.find((s) => s.id === selectedServiceId) || SERVICES[0];
 
   return (
     <div className="min-h-screen marble-shimmer-bg text-stone-800 flex flex-col font-sans selection:bg-[#F3E8FF] selection:text-[#4B2A6B] overflow-x-hidden">
@@ -946,6 +964,8 @@ export default function App() {
 
 
 
+
+
       {/* --- TURNERO SECTION (ADVANCED BOOKING ENGINE) --- */}
       <section id="turnero" className="py-20 lg:py-28 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8">
         
@@ -1108,72 +1128,98 @@ export default function App() {
                     </a>
                   </div>
                 ) : (
-                  <div className="space-y-1.5 relative animate-fade-in">
-                    <label className="block text-[10px] uppercase tracking-wider font-extrabold text-[#5C3A85]">
-                      Barrio para la Atención <span className="text-rose-600 font-bold">*</span>
-                    </label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5C3A85]/70 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={barrioInput}
-                        onChange={(e) => {
-                          setBarrioInput(e.target.value);
-                          setShowSuggestions(true);
-                        }}
-                        onFocus={() => setShowSuggestions(true)}
-                        onBlur={() => {
-                          setTimeout(() => setShowSuggestions(false), 200);
-                        }}
-                        placeholder="Escribí tu barrio de Santa Rosa (ej. Centro, Villa Alonso, Toay, etc.)"
-                        required={modalidad === "Domicilio"}
-                        className="w-full bg-[#FAF6F9] border border-[#FCE7F3] rounded-xl py-2 pl-10 pr-3.5 text-stone-950 font-medium text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#5C3A85] focus:border-[#5C3A85] transition-all h-10 shadow-sm"
-                      />
-                      
-                      {/* Autocomplete Suggestions Dropdown */}
-                      {showSuggestions && (
-                        <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-[#FCE7F3] rounded-xl shadow-lg z-50 divide-y divide-stone-100 animate-fade-in">
-                          {BARRIOS.filter(b => b.nombre.toLowerCase().includes(barrioInput.toLowerCase())).length > 0 ? (
-                            BARRIOS.filter(b => b.nombre.toLowerCase().includes(barrioInput.toLowerCase())).map((barrio) => (
-                              <div
-                                key={barrio.nombre}
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setBarrioInput(barrio.nombre);
-                                  setShowSuggestions(false);
-                                }}
-                                className="px-3 py-2 text-xs text-stone-900 hover:bg-[#FDF2F7] hover:text-[#5C3A85] transition-all cursor-pointer font-bold flex items-center justify-between"
-                              >
-                                <span>{barrio.nombre}</span>
-                                {barrioInput.toLowerCase() === barrio.nombre.toLowerCase() && (
-                                  <Check className="w-3.5 h-3.5 text-[#E05A92]" />
-                                )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                    
+                    {/* Barrio Input */}
+                    <div className="space-y-1.5 relative">
+                      <label className="block text-[10px] uppercase tracking-wider font-extrabold text-[#5C3A85]">
+                        Barrio para la Atención <span className="text-rose-600 font-bold">*</span>
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5C3A85]/70 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={barrioInput}
+                          onChange={(e) => {
+                            setBarrioInput(e.target.value);
+                            setShowSuggestions(true);
+                          }}
+                          onFocus={() => setShowSuggestions(true)}
+                          onBlur={() => {
+                            setTimeout(() => setShowSuggestions(false), 200);
+                          }}
+                          placeholder="Escribí tu barrio de Santa Rosa (ej. Centro, Villa Alonso, Toay, etc.)"
+                          required={modalidad === "Domicilio"}
+                          className="w-full bg-[#FAF6F9] border border-[#FCE7F3] rounded-xl py-2 pl-10 pr-3.5 text-stone-950 font-medium text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#5C3A85] focus:border-[#5C3A85] transition-all h-10 shadow-sm"
+                        />
+                        
+                        {/* Autocomplete Suggestions Dropdown */}
+                        {showSuggestions && (
+                          <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-[#FCE7F3] rounded-xl shadow-lg z-50 divide-y divide-stone-100 animate-fade-in">
+                            {BARRIOS.filter(b => b.nombre.toLowerCase().includes(barrioInput.toLowerCase())).length > 0 ? (
+                              BARRIOS.filter(b => b.nombre.toLowerCase().includes(barrioInput.toLowerCase())).map((barrio) => (
+                                <div
+                                  key={barrio.nombre}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setBarrioInput(barrio.nombre);
+                                    setShowSuggestions(false);
+                                  }}
+                                  className="px-3 py-2 text-xs text-stone-900 hover:bg-[#FDF2F7] hover:text-[#5C3A85] transition-all cursor-pointer font-bold flex items-center justify-between"
+                                >
+                                  <span>{barrio.nombre}</span>
+                                  {barrioInput.toLowerCase() === barrio.nombre.toLowerCase() && (
+                                    <Check className="w-3.5 h-3.5 text-[#E05A92]" />
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-3 py-2 text-xs text-stone-800 font-bold italic">
+                                No se encontraron coincidencias. Escribilo manualmente.
                               </div>
-                            ))
-                          ) : (
-                            <div className="px-3 py-2 text-xs text-stone-800 font-bold italic">
-                              No se encontraron coincidencias. Escribilo manualmente.
-                            </div>
-                          )}
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Surcharge alert banner */}
+                      {selectedBarrioObj && (
+                        <div className="mt-2.5 p-3 rounded-xl border border-[#FCE7F3] bg-[#FFF5F9] text-[#E05A92] flex items-center gap-2.5 shadow-sm animate-fade-in">
+                          <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-[#E05A92] shrink-0 border border-[#FCE7F3] shadow-xs">
+                            <MapPin className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="text-[11px] font-semibold text-stone-900 leading-normal">
+                            Se aplicará un recargo de viáticos de{" "}
+                            <span className="font-extrabold text-[#E05A92]">
+                              ${selectedBarrioObj.precio.toLocaleString("es-AR")}
+                            </span>{" "}
+                            por traslado ({selectedBarrioObj.km.toLocaleString("es-AR")} km).
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Surcharge alert banner */}
-                    {selectedBarrioObj && (
-                      <div className="mt-2.5 p-3 rounded-xl border border-[#FCE7F3] bg-[#FFF5F9] text-[#E05A92] flex items-center gap-2.5 shadow-sm animate-fade-in">
-                        <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-[#E05A92] shrink-0 border border-[#FCE7F3] shadow-xs">
-                          <MapPin className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="text-[11px] font-semibold text-stone-900 leading-normal">
-                          Se aplicará un recargo de viáticos de{" "}
-                          <span className="font-extrabold text-[#E05A92]">
-                            ${selectedBarrioObj.precio.toLocaleString("es-AR")}
-                          </span>{" "}
-                          por traslado ({selectedBarrioObj.km.toLocaleString("es-AR")} km).
-                        </div>
+                    {/* Dirección Exacta Input */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] uppercase tracking-wider font-extrabold text-[#5C3A85]">
+                        Dirección Exacta (Calle, Número, Depto) <span className="text-rose-600 font-bold">*</span>
+                      </label>
+                      <div className="relative">
+                        <Home className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5C3A85]/70 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={direccionDomicilio}
+                          onChange={(e) => setDireccionDomicilio(e.target.value)}
+                          placeholder="Ej. Av. San Martín 420, Piso 2 Depto B"
+                          required={modalidad === "Domicilio"}
+                          className="w-full bg-[#FAF6F9] border border-[#FCE7F3] hover:border-[#E05A92]/40 rounded-xl py-2 pl-10 pr-3.5 text-stone-950 font-medium text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C3A85]/15 focus:border-[#5C3A85] shadow-sm transition-all h-10"
+                        />
                       </div>
-                    )}
+                      <span className="block text-[10px] text-stone-400 font-semibold leading-normal">
+                        Ingresá la calle, altura y detalles para que Zoe pueda llegar sin inconvenientes.
+                      </span>
+                    </div>
+
                   </div>
                 )}
               </div>
@@ -1245,6 +1291,30 @@ export default function App() {
 
               </div>
 
+              {/* Subtle Total Box */}
+              <div className="md:col-span-2 p-3.5 bg-[#FAF6F9] border border-[#FCE7F3] rounded-xl flex items-center justify-between text-xs text-stone-600 animate-fade-in mt-1 shadow-xs">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-stone-500">Tratamiento:</span>
+                    <span className="font-bold text-stone-800">{selectedService.name} ({selectedService.price})</span>
+                  </div>
+                  {modalidad === "Domicilio" && (
+                    <div className="flex items-center gap-1.5 sm:border-l sm:border-stone-200 sm:pl-4">
+                      <span className="font-semibold text-stone-500">Viáticos:</span>
+                      <span className="font-bold text-[#E05A92]">
+                        {selectedBarrioObj ? `+$${selectedBarrioObj.precio.toLocaleString("es-AR")}` : "Pendiente de barrio"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right shrink-0 border-l border-stone-200 pl-4">
+                  <span className="block text-[9px] uppercase tracking-wider font-extrabold text-[#5C3A85]">Total Estimado</span>
+                  <span className="text-sm font-bold text-[#4B2A6B]">
+                    ${((parseInt(selectedService.price.replace(/[^0-9]/g, ""), 10) || 0) + ((modalidad === "Domicilio" && selectedBarrioObj) ? selectedBarrioObj.precio : 0)).toLocaleString("es-AR")}
+                  </span>
+                </div>
+              </div>
+
               {/* Bottom full width submit footer */}
               <div className="md:col-span-2 pt-4 border-t border-stone-100 flex justify-center sm:justify-end">
                 <button
@@ -1261,6 +1331,95 @@ export default function App() {
 
         </div>
 
+      </section>
+
+      {/* --- REDES SOCIALES SECTION (RELOCATED AFTER TURNERO WITH INSTAGRAM, WHATSAPP AND COMING SOON TIKTOK) --- */}
+      <section id="redes" className="py-16 bg-[#FFF9FB] border-b border-[#FCE7F3] relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-1/2 left-[-5%] w-64 h-64 bg-[#F5EBFA] rounded-full blur-3xl opacity-60 pointer-events-none" />
+        <div className="absolute top-10 right-[-5%] w-72 h-72 bg-[#FFF0F5] rounded-full blur-3xl opacity-75 pointer-events-none" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-3xl mx-auto text-center mb-12 space-y-3">
+            <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-[#E05A92] block">
+              ¡Sumate a la Comunidad de Zoe!
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl text-[#4B2A6B] tracking-tight font-medium">
+              Seguinos en nuestras Redes
+            </h2>
+            <div className="w-12 h-0.5 bg-[#E05A92]/40 mx-auto rounded-full" />
+            <p className="text-stone-700 text-sm max-w-lg mx-auto leading-relaxed font-semibold">
+              Inspirate con nuestros diseños diarios, tips de cuidado y enterate antes que nadie de los turnos libres de la semana.
+            </p>
+          </div>
+
+          {/* Social Links Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            
+            {/* Instagram Card */}
+            <a 
+              href="https://www.instagram.com/kireinails.by.zoe?igsh=cmxtOTNsczI0cGR5" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group relative bg-white border border-[#FCE7F3] rounded-3xl p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(224,90,146,0.12)] hover:border-[#E05A92]/40"
+            >
+              {/* Glow background on hover */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#FFF5F9] to-[#FDF4FF] rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+              
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#F1157B] via-[#E05A92] to-[#8F15F1] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 mb-5 relative">
+                <Instagram className="w-7 h-7" />
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E05A92] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-[#E05A92] text-[8px] font-extrabold text-white items-center justify-center">!</span>
+                </span>
+              </div>
+              
+              <h3 className="font-serif text-lg font-bold text-[#4B2A6B] mb-1">Instagram</h3>
+              <p className="text-xs text-stone-500 mb-4 font-medium">@kireinails.by.zoe</p>
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#E05A92] uppercase tracking-wider group-hover:text-[#5C3A85] transition-colors">
+                <span>Ver Feed</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </div>
+            </a>
+
+            {/* WhatsApp Card */}
+            <a 
+              href="https://wa.me/5492954311579" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group relative bg-white border border-[#FCE7F3] rounded-3xl p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(37,211,102,0.12)] hover:border-[#25D366]/40"
+            >
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#F0FDF4] to-[#FDF4FF] rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+              
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-[#25D366] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 mb-5">
+                <MessageCircle className="w-7 h-7 fill-white text-[#25D366]" />
+              </div>
+              
+              <h3 className="font-serif text-lg font-bold text-[#4B2A6B] mb-1">WhatsApp</h3>
+              <p className="text-xs text-stone-500 mb-4 font-medium">Atención Consultas</p>
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#25D366] uppercase tracking-wider group-hover:text-[#5C3A85] transition-colors">
+                <span>Chatear ahora</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </div>
+            </a>
+
+            {/* TikTok Card (Próximamente) */}
+            <div 
+              className="relative bg-white/40 border border-[#FCE7F3] rounded-3xl p-6 text-center opacity-70 select-none flex flex-col items-center justify-center"
+            >
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mb-5 border border-dashed border-stone-200">
+                <Sparkles className="w-6 h-6 text-stone-400" />
+              </div>
+              
+              <h3 className="font-serif text-lg font-bold text-stone-500 mb-1">TikTok</h3>
+              <p className="text-xs text-stone-400 mb-4 font-medium">@kireinails.by.zoe</p>
+              <span className="inline-flex items-center px-3 py-0.5 rounded-full text-[8px] font-extrabold bg-[#E05A92]/10 text-[#E05A92] uppercase tracking-widest">
+                Próximamente
+              </span>
+            </div>
+
+          </div>
+        </div>
       </section>
 
       {/* --- EXCLUSIVE BACKSTAGE GUEST LIST / ADMIN PANEL --- */}
@@ -1441,7 +1600,7 @@ export default function App() {
                                       {app.modalidad === "Local" 
                                         ? "Callaqueo 1019" 
                                         : app.modalidad === "Domicilio" 
-                                        ? `A domicilio: ${app.barrio || "Sin especificar"}` 
+                                        ? `A domicilio: ${app.barrio || "Sin especificar"}${app.direccion ? ` (${app.direccion})` : ""}` 
                                         : app.zone}
                                     </span>
                                   </div>

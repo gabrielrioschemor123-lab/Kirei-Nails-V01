@@ -1085,16 +1085,27 @@ export default function App() {
               {/* Dynamic Modalidad Location / Barrio autocomplete */}
               <div className="md:col-span-2">
                 {modalidad === "Local" ? (
-                  <div className="p-3.5 rounded-xl border-2 border-[#FCE7F3] bg-[#FAF6F9] flex items-center gap-3 animate-fade-in shadow-sm">
-                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#E05A92] shrink-0 border border-[#FCE7F3]">
-                      <Home className="w-4 h-4" />
+                  <div className="p-3.5 rounded-xl border-2 border-[#FCE7F3] bg-[#FAF6F9] flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#E05A92] shrink-0 border border-[#FCE7F3]">
+                        <Home className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="block text-[9px] font-extrabold text-[#5C3A85] uppercase tracking-wider leading-none">Dirección de nuestro Estudio</span>
+                        <p className="text-[11px] text-stone-900 mt-1 leading-tight font-semibold">
+                          Te esperamos en: <span className="text-[#5C3A85] font-extrabold">Callaqueo 1019, Santa Rosa</span>.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block text-[9px] font-extrabold text-[#5C3A85] uppercase tracking-wider leading-none">Dirección de nuestro Estudio</span>
-                      <p className="text-[11px] text-stone-900 mt-1 leading-tight font-semibold">
-                        Te esperamos en: <span className="text-[#5C3A85] font-extrabold">Callaqueo 1019, Santa Rosa</span>.
-                      </p>
-                    </div>
+                    <a
+                      href="https://www.google.com/maps/dir/?api=1&destination=Callaqueo+1019,+Santa+Rosa,+La+Pampa,+Argentina"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-[#5C3A85] to-[#E05A92] hover:from-[#4B2A6B] hover:to-[#C0497E] text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-center shadow-sm hover:shadow active:scale-95 shrink-0"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-[#FFF5F9]" />
+                      <span>Cómo llegar</span>
+                    </a>
                   </div>
                 ) : (
                   <div className="space-y-1.5 relative animate-fade-in">
